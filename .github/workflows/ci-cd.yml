@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      APP_NAME: golang-clean-web-api
+      APP_NAME: car-api
       GO_VERSION: '1.22'
 
     steps:
