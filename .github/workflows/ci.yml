@@ -1,0 +1,78 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_NAME: golang-clean-web-api
+      GO_VERSION: '1.22'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        working-directory: src
+        run: go mod download
+
+      - name: Install golint
+        run: go install golang.org/x/lint/golint@latest
+
+      - name: Lint
+        working-directory: src
+        run: golint ./...
+
+      - name: Install go-junit-report
+        run: go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: Run tests with coverage and JUnit report
+        working-directory: src
+        run: |
+          go test -v ./tests/... -coverprofile=coverage.out 2>&1 | go-junit-report -set-exit-code > test-results.xml
+
+      - name: Upload JUnit Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-results
+          path: src/test-results.xml
+
+      - name: Build
+        run: go build -v ./...
+        working-directory: src
+
+      - name: Build
+        run: go build -o ${{ env.APP_NAME }}
+        working-directory: src
+
+      - name: Docker Build & Push
+        if: github.ref == 'refs/heads/master'
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+        run: |
+          echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+          docker build -t $APP_NAME:latest src
+          docker tag $APP_NAME:latest $DOCKER_USER/$APP_NAME:latest
+          docker push $DOCKER_USER/$APP_NAME:latest
