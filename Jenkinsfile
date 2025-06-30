@@ -16,22 +16,41 @@ pipeline {
         stage('Set up Go') {
             steps {
                 script {
-                    sh "go version || wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz"
+                    // Check if Go is already installed
+                    def goInstalled = sh(script: 'which go', returnStatus: true) == 0
+                    
+                    if (!goInstalled) {
+                        // Download and install Go
+                        sh "wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+                        sh "sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz"
+                        sh "rm go${GO_VERSION}.linux-amd64.tar.gz"
+                    }
+                    
+                    // Set up environment variables
                     env.PATH = "/usr/local/go/bin:${env.PATH}"
+                    env.GOROOT = "/usr/local/go"
+                    env.GOPATH = "${env.WORKSPACE}/go"
+                    
+                    // Verify Go installation
+                    sh 'go version'
                 }
             }
         }
 
         stage('Download Dependencies') {
             steps {
-                sh 'go mod download'
+                dir('src') {
+                    sh 'go mod download'
+                }
             }
         }
 
         stage('Lint') {
             steps {
-                sh 'go install golang.org/x/lint/golint@latest'
-                sh 'golint ./...'
+                dir('src') {
+                    sh 'go install golang.org/x/lint/golint@latest'
+                    sh 'golint ./...'
+                }
             }
         }
 
@@ -45,7 +64,9 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'go build -o ${APP_NAME}'
+                dir('src') {
+                    sh 'go build -o ${APP_NAME}'
+                }
             }
         }
 
