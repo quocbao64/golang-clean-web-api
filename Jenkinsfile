@@ -20,10 +20,15 @@ pipeline {
                     def goInstalled = sh(script: 'which go', returnStatus: true) == 0
                     
                     if (!goInstalled) {
-                        // Download and install Go
-                        sh "wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
-                        sh "sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz"
-                        sh "rm go${GO_VERSION}.linux-amd64.tar.gz"
+                        // Try to install Go using package manager first
+                        def packageManagerInstalled = sh(script: 'apt-get update && apt-get install -y golang-go', returnStatus: true) == 0
+                        
+                        if (!packageManagerInstalled) {
+                            // Fallback: Download and install Go manually
+                            sh "curl -L -o go${GO_VERSION}.linux-amd64.tar.gz https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+                            sh "sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz"
+                            sh "rm go${GO_VERSION}.linux-amd64.tar.gz"
+                        }
                     }
                     
                     // Set up environment variables
