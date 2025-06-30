@@ -85,7 +85,7 @@ pipeline {
 
    post {
        always {
-           node {
+           node('') {
                junit '**/test-results.xml'
                cleanWs()
            }
