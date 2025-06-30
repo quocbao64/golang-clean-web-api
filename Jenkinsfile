@@ -6,7 +6,7 @@ pipeline {
         APP_NAME = 'golang-clean-web-api'
     }
 
-    tool {
+    tools {
         go "go${GO_VERSION}"
     }
 
