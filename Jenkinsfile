@@ -37,8 +37,9 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'go test src/tests -v -coverprofile=coverage.out'
-                sh 'go tool cover -html=coverage.out -o coverage.html'
+                dir('src') {
+                    sh 'go test -v ./tests/... -coverprofile=coverage.out'
+                }
             }
         }
 
