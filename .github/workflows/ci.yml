@@ -59,11 +59,7 @@ jobs:
           path: src/test-results.xml
 
       - name: Build
-        run: go build -v ./...
-        working-directory: src
-
-      - name: Build
-        run: go build -o ${{ env.APP_NAME }}
+        run: go build -v ./... -o ${{ env.APP_NAME }}
         working-directory: src
 
       - name: Docker Build & Push
